@@ -1,0 +1,142 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="fetch" >
+  
+  <xacro:include filename="$(find wall_e_description)/urdf/wall_e.urdf" />
+  <xacro:arg name="kp" default="100000000.0"/>
+  <xacro:arg name="kd" default="1.0"/>
+  <xacro:arg name="wheel_friction" default="10000.0"/>
+
+  <!-- Base is modeled as a big box sitting on floor, with two wheels -->
+  <gazebo reference="base_link">
+    <kp>$(arg kp)</kp>
+    <kd>$(arg kd)</kd>
+    <mu1>0.001</mu1>
+    <mu2>0.001</mu2>
+    <fdir1>1 0 0</fdir1>
+    <maxVel>1.0</maxVel>
+    <minDepth>0.0005</minDepth>
+  </gazebo>
+
+  <gazebo reference="body_link">
+    <kp>$(arg kp)</kp>
+    <kd>$(arg kd)</kd>
+    <mu1>0.001</mu1>
+    <mu2>0.001</mu2>
+    <fdir1>1 0 0</fdir1>
+    <maxVel>1.0</maxVel>
+    <minDepth>0.0005</minDepth>
+  </gazebo>
+
+  <gazebo reference="left_drive_wheel_link">
+    <kp>$(arg kp)</kp>
+    <kd>$(arg kd)</kd>
+    <mu1>$(arg wheel_friction)</mu1>
+    <mu2>$(arg wheel_friction)</mu2>
+    <fdir1>1 0 0</fdir1>
+    <maxVel>1.0</maxVel>
+    <minDepth>0.0005</minDepth>
+  </gazebo>
+
+  <gazebo reference="right_drive_wheel_link">
+    <kp>$(arg kp)</kp>
+    <kd>$(arg kd)</kd>
+    <mu1>$(arg wheel_friction)</mu1>
+    <mu2>$(arg wheel_friction)</mu2>
+    <fdir1>1 0 0</fdir1>
+    <maxVel>1.0</maxVel>
+    <minDepth>0.0005</minDepth>
+  </gazebo>
+
+  <gazebo>
+    <plugin name="wall_e_controller" filename="libgazebo_ros_diff_drive.so">      
+      <commandTopic>cmd_vel</commandTopic>
+      <odometryTopic>odom</odometryTopic>
+      <odometryFrame>odom</odometryFrame>
+      <robotBaseFrame>base_link</robotBaseFrame>
+      <publishWheelTF>false</publishWheelTF>
+      <publishWheelJointState>true</publishWheelJointState>
+      <legacyMode>false</legacyMode>
+      <updateRate>100</updateRate>
+      <leftJoint>left_drive_wheel_joint</leftJoint>
+      <rightJoint>right_drive_wheel_joint</rightJoint>
+      <wheelSeparation>0.36</wheelSeparation>
+      <wheelDiameter>0.24</wheelDiameter>
+      <wheelTorque>20.0</wheelTorque>
+      <wheelAcceleration>1.0</wheelAcceleration>
+    </plugin>  
+  </gazebo>
+
+  <gazebo>
+    <plugin name="imu_plugin" filename="libgazebo_ros_imu.so">
+      <alwaysOn>true</alwaysOn>
+      <bodyName>imu_link</bodyName>
+      <topicName>imu</topicName>
+      <serviceName>imu_service</serviceName>
+      <gaussianNoise>0.0</gaussianNoise>
+      <updateRate>100.0</updateRate>
+      <imu>
+        <noise>
+          <type>gaussian</type>
+          <rate>
+            <mean>0.0</mean>
+            <stddev>2e-4</stddev>
+            <bias_mean>0.0000075</bias_mean>
+            <bias_stddev>0.0000008</bias_stddev>
+          </rate>
+          <accel>
+            <mean>0.0</mean>
+            <stddev>1.7e-2</stddev>
+            <bias_mean>0.1</bias_mean>
+            <bias_stddev>0.001</bias_stddev>
+          </accel>
+        </noise>
+      </imu>
+    </plugin>
+  </gazebo>
+
+  <gazebo reference="imu_link">
+    <sensor type="imu" name="imu">
+      <always_on>true</always_on>
+      <update_rate>50</update_rate>
+      <visualize>false</visualize>
+    </sensor>
+    <material>Gazebo/Grey</material>
+  </gazebo>
+
+ <!-- hokuyo -->
+  <gazebo reference="hokuyo_link">
+    <sensor type="ray" name="head_hokuyo_sensor">
+      <pose>0 0 0 0 0 0</pose>
+      <visualize>false</visualize>
+      <update_rate>40</update_rate>
+      <ray>
+        <scan>
+          <horizontal>
+            <samples>640</samples>
+            <resolution>1</resolution>
+            <min_angle>-3.83959</min_angle>
+            <max_angle>0.69819</max_angle>
+          </horizontal>
+        </scan>
+        <range>
+          <min>0.4</min>
+          <max>10</max>
+          <resolution>0.01</resolution>
+        </range>
+        <noise>
+          <type>gaussian</type>
+          <!-- Noise parameters based on published spec for Hokuyo laser
+               achieving "+-30mm" accuracy at range < 10m.  A mean of 0.0m and
+               stddev of 0.01m will put 99.7% of samples within 0.03m of the true
+               reading. -->
+          <mean>0.0</mean>
+          <stddev>0.01</stddev>
+        </noise>
+      </ray>
+      <plugin name="hokuyo_node" filename="libgazebo_ros_laser.so">
+        <topicName>/scan</topicName>
+        <frameName>hokuyo_link</frameName>
+      </plugin>
+    </sensor>
+  </gazebo>
+</robot>
